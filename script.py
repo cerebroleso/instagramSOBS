@@ -151,33 +151,29 @@ def instagram_navigation(page, USERNAME):
     page.wait_for_selector('div[role="dialog"]')
 
     print("scrolling the list ...")
-    # 1. Trova il pop-up (dialog) e ASPETTA che appaia
+    # 1. find pop-up dialog and waiting for it to open
     dialog_locator = page.locator('div[role="dialog"]')
     try:
-        # Aspettiamo fino a 5 secondi che il pop-up sia visibile
+        # waiting up to 5 secs
         dialog_locator.wait_for(state="visible", timeout=5000)
     except Exception:
-        print("⛔ Errore: Il pop-up (div[role='dialog']) non si è aperto.")
-        return # Esce dalla funzione se non trova il pop-up
+        print("⛔ Error: pop-up (div[role='dialog']) did not open.")
+        return # exit if not found
 
-    # 2. Trova il selettore scrollabile
-    # QUI METTI LA NUOVA CLASSE CHE HAI TROVATO CON F12
-    # Sostituisci '_XXXX' con la nuova classe (es. _ab12, _ac1b, ...)
-
-    # scroll_selector = 'div._ac78' 
+    # 2. search the scrollable element
 
     popup_locator = dialog_locator.locator(scroll_selector)
     
-    # 3. Controlla se lo ha trovato *prima* di usarlo
+    # 3. check if found
     if popup_locator.count() == 0:
-        print(f"⛔ Errore: Selettore di scroll '{scroll_selector}' non trovato.")
-        print("     Per favore, aggiorna il selettore CSS (quello che era '_aano').")
-        return # Esce se non trova l'area scrollabile
+        print(f"⛔ Error: scroll selector'{scroll_selector}' not found.")
+        print("     please, update the CSS selector in the config file (should be something like '_aano').")
+        return # exit if not found
 
-    # 4. Ora puoi eseguire lo scroll in sicurezza
+    # 4. now it can scroll
     last_height = 0
     while True:
-        # Usiamo .evaluate() sul locator
+        # .evaluate()
         popup_locator.evaluate('el => el.scrollTop = el.scrollHeight')
         
         time.sleep(0.4) 
@@ -209,33 +205,29 @@ def instagram_navigation(page, USERNAME):
     page.wait_for_selector('div[role="dialog"]')
 
     print("scrolling the list ...")
-    # 1. Trova il pop-up (dialog) e ASPETTA che appaia
+    # 1. find pop-up dialog and waiting for it to open
     dialog_locator = page.locator('div[role="dialog"]')
     try:
-        # Aspettiamo fino a 5 secondi che il pop-up sia visibile
+        # waiting up to 5 secs
         dialog_locator.wait_for(state="visible", timeout=5000)
     except Exception:
-        print("⛔ Errore: Il pop-up (div[role='dialog']) non si è aperto.")
-        return # Esce dalla funzione se non trova il pop-up
+        print("⛔ Error: pop-up (div[role='dialog']) did not open.")
+        return # exit if not found
 
-    # 2. Trova il selettore scrollabile
-    # QUI METTI LA NUOVA CLASSE CHE HAI TROVATO CON F12
-    # Sostituisci '_XXXX' con la nuova classe (es. _ab12, _ac1b, ...)
-
-    # scroll_selector = 'div._ac78' 
+    # 2. search the scrollable element
 
     popup_locator = dialog_locator.locator(scroll_selector)
     
-    # 3. Controlla se lo ha trovato *prima* di usarlo
+    # 3. check if found
     if popup_locator.count() == 0:
-        print(f"⛔ Errore: Selettore di scroll '{scroll_selector}' non trovato.")
-        print("     Per favore, aggiorna il selettore CSS (quello che era '_aano').")
-        return # Esce se non trova l'area scrollabile
+        print(f"⛔ Error: scroll selector'{scroll_selector}' not found.")
+        print("     please, update the CSS selector in the config file (should be something like '_aano').")
+        return # exit if not found
 
-    # 4. Ora puoi eseguire lo scroll in sicurezza
+    # 4. now it can scroll
     last_height = 0
     while True:
-        # Usiamo .evaluate() sul locator
+        # .evaluate()
         popup_locator.evaluate('el => el.scrollTop = el.scrollHeight')
         
         time.sleep(0.4) 
@@ -372,7 +364,7 @@ def save_results(following_list, followers_list):
     _save_txt_file(folder_path, "sobs", list(sobs))
     _save_txt_file(folder_path, "fans", list(fans))
 
-    print("\n--- Riepilogo Analisi ---")
+    print("\n--- results chart ---")
     print(f"👤 following: {len(following_set)}")
     print(f"👥 followers: {len(followers_set)}")
     print(f"❌ SOBS: {len(sobs)}")
