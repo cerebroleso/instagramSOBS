@@ -53,6 +53,7 @@ def simple_safety_check(page, SAFETY_CHECKS):
         sys.exit(1)
     elif(flag_value) == True and (SAFETY_CHECKS) == False:
         print("!!!YOU ARE RUNNING THIS SCRIPT WITH THE MOST OBVIOUS BOT FLAG. DO IT ON YOUR OWN RISK!!!\n")
+        time.sleep(3)
         return
     else:
         print("flag is false. moving on...\n")
@@ -68,39 +69,153 @@ def simple_safety_check(page, SAFETY_CHECKS):
 
 
 def website_safety_check(page, SAFETY_CHECKS, HEADLESS_MODE):
-    print('type n to skip these checks. YOU SHOULD ALWAYS CHECK THIS WEBSITES RESULTS')
-    choice = input()
-    if(choice != 'n'):
-        # goto botcheck websites(s)
-        print('go fullscreen with chromium, then press enter\nALWAYS CHECK THIS WEBSITES RESULTS')
-        input()
-        website1 = "https://bot.sannysoft.com/"
-        page.goto(website1)
-        print('all good ?')
-        input()
-        if(HEADLESS_MODE) == True:
-            save_page_html(page, website1, "bot_sannysoft")
-        print('moving on ...')
+    print("ALWAYS CHECK THIS WEBSITES RESULTS")
+    if(SAFETY_CHECKS == False):
+        print('type n to skip these checks. YOU SHOULD ALWAYS CHECK THIS')
+        choice = input()
+        if(choice != 'n'):
+            # goto botcheck websites(s)
+            print('go fullscreen with chromium, then press enter\n')
+            input()
+            website1 = "https://bot.sannysoft.com/"
+            page.goto(website1)
+            print('all good ?')
+            input()
+            if(HEADLESS_MODE) == True:
+                save_page_html(page, website1, "bot_sannysoft")
+            print('moving on ...')
 
-        website2 = "https://abrahamjuliot.github.io/creepjs/"   
-        page.goto(website2)
-        print('all good ?')
-        input()
-        if(HEADLESS_MODE) == True:
-            save_page_html(page, website1, "bot_sannysoft")
-        print('moving on ...')
+            website2 = "https://abrahamjuliot.github.io/creepjs/"   
+            page.goto(website2)
+            print('all good ?')
+            input()
+            if(HEADLESS_MODE) == True:
+                save_page_html(page, website1, "bot_sannysoft")
+            print('moving on ...')
 
-        # website3 = "https://www.google.com/recaptcha/api2/demo"
-        # page.goto(website3)
-        # page.locator("#id_della_checkbox").check()        
-        # print('all good ?')
-        # if(HEADLESS_MODE) == True:
-        #     save_page_html(page, website1, "bot_sannysoft")
-        # input()
+            # website3 = "https://www.google.com/recaptcha/api2/demo"
+            # page.goto(website3)
+            # page.locator("#id_della_checkbox").check()        
+            # print('all good ?')
+            # if(HEADLESS_MODE) == True:
+            #     save_page_html(page, website1, "bot_sannysoft")
+            # input()
 
-        print('are you sure you want to continue?')
-        input()
+            print('are you sure you want to continue?')
+            input()
     return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def scrape_list(page, list_type, scroll_selector):
+    """
+    scrapes either the 'following' or 'followers' list,
+    stops scrolling when "Suggested for you" is seen,
+    and excludes the last 30 results.
+    """
+    
+    print(f"--- opening {list_type.upper()} list ---")
+    page.click(f'a[href$="/{list_type}/"]')
+    
+    print("waiting for dialog...")
+    dialog_locator = page.locator('div[role="dialog"]')
+    try:
+        dialog_locator.wait_for(state="visible", timeout=5000)
+    except Exception:
+        print(f"⛔ error: {list_type} pop-up did not open.")
+        # try to go back to the profile page to prevent a crash on the next run
+        try:
+            page.goto(f"https://www.instagram.com/{page.url.split('/')[3]}/") 
+        except Exception:
+            pass # if it fails, just return
+        return [] # return an empty list on error
+
+    print("locating scroll area...")
+    popup_locator = dialog_locator.locator(scroll_selector)
+    
+    if popup_locator.count() == 0:
+        print(f"⛔ error: scroll selector '{scroll_selector}' not found.")
+        print("     please, update the CSS selector in the config file (should be something like '_aano').")
+        page.get_by_role("button", name="Close").click()
+        return [] # Return an empty list on error
+
+    print("scrolling the list...")
+    last_height = 0
+    while True:
+        try:
+            is_suggested_visible = popup_locator.get_by_text("Suggested for you", exact=True).is_visible(timeout=100)
+            if is_suggested_visible:
+                print("'suggested for you' text found. stopping scroll.")
+                break # stop scrolling
+        except Exception:
+            # not visible or not found, which is good. continue scrolling.
+            pass 
+        
+        # scroll down
+        popup_locator.evaluate('el => el.scrollTop = el.scrollHeight')
+        time.sleep(0.4) 
+        
+        # check if we've reached the end
+        new_height = popup_locator.evaluate('el => el.scrollHeight')
+        if new_height == last_height:
+            print("scrolling complete (reached the end).")
+            break
+        last_height = new_height
+
+    print("saving the list...")
+    scraped_list = page.evaluate("""
+        () => {
+            const names = [];
+            document.querySelectorAll('div[role="dialog"] a[href^="/"][role="link"] span[dir="auto"]').forEach(el => {
+                names.push(el.textContent.trim());
+            });
+            return names;
+        }
+    """)
+    
+    print(f"captured {len(scraped_list)} raw profiles.")
+
+    final_list = []
+    if len(scraped_list) > 30:
+        print("excluding the last 30 (as they are likely suggestions).")
+        final_list = scraped_list[:-30] # this gets all items EXCEPT the last 30
+    else:
+        print("list is 30 or fewer profiles, not trimming.")
+        final_list = scraped_list
+    
+    print(f"final list size: {len(final_list)}")
+    
+    # Close the dialog
+    page.get_by_role("button", name="Close").click()
+    print(f"--- finished {list_type.upper()} list ---")
+    
+    return final_list
+
+
+
+
+
+
+
 
 
 
@@ -117,7 +232,6 @@ def instagram_navigation(page, USERNAME):
     # cookies
     print("clicking cookie banner (if present)...")
     try:
-        
         page.get_by_role("button", name="Decline optional cookies").click(timeout=1000)
         print("cookie banner accepted.")
     except Exception:
@@ -127,10 +241,7 @@ def instagram_navigation(page, USERNAME):
         except Exception:
             print("cookie banner not found or already accepted. moving on...")
 
-
-
     try:
-        
         print("filling user's credentials ...")
         page.get_by_role("button", name="Login").click(timeout=500)
         page.fill('input[name="username"]', USERNAME)
@@ -139,117 +250,18 @@ def instagram_navigation(page, USERNAME):
     except:
         print('already logged in?')
 
-
     page.goto(f"https://www.instagram.com/{USERNAME}/")
 
     print("you should be seeing your profile page. starting the script")
 
-    scroll_selector = config_read_object('div')
+    scroll_selector = config_read_object('div') 
 
-    print("opening FOLLOWING list ...")
-    page.click('a[href$="/following/"]')
-    page.wait_for_selector('div[role="dialog"]')
-
-    print("scrolling the list ...")
-    # 1. find pop-up dialog and waiting for it to open
-    dialog_locator = page.locator('div[role="dialog"]')
-    try:
-        # waiting up to 5 secs
-        dialog_locator.wait_for(state="visible", timeout=5000)
-    except Exception:
-        print("⛔ Error: pop-up (div[role='dialog']) did not open.")
-        return # exit if not found
-
-    # 2. search the scrollable element
-
-    popup_locator = dialog_locator.locator(scroll_selector)
+    following_list = scrape_list(page, "following", scroll_selector)
     
-    # 3. check if found
-    if popup_locator.count() == 0:
-        print(f"⛔ Error: scroll selector'{scroll_selector}' not found.")
-        print("     please, update the CSS selector in the config file (should be something like '_aano').")
-        return # exit if not found
-
-    # 4. now it can scroll
-    last_height = 0
-    while True:
-        # .evaluate()
-        popup_locator.evaluate('el => el.scrollTop = el.scrollHeight')
-        
-        time.sleep(0.4) 
-        
-        new_height = popup_locator.evaluate('el => el.scrollHeight')
-        if new_height == last_height:
-            print("Scrolling terminato.")
-            break
-        last_height = new_height
-
-    print("saving the list ...")
-    following_list = page.evaluate("""
-        () => {
-            const names = [];
-            document.querySelectorAll('div[role="dialog"] a[href^="/"][role="link"] span[dir="auto"]').forEach(el => {
-                names.push(el.textContent.trim());
-            });
-            return names;
-        }
-    """)
-    page.get_by_role("button", name="Close").click()
-
-    print('done')
-
-
-
-    print("opening FOLLOWERS list ...")
-    page.click('a[href$="/followers/"]')
-    page.wait_for_selector('div[role="dialog"]')
-
-    print("scrolling the list ...")
-    # 1. find pop-up dialog and waiting for it to open
-    dialog_locator = page.locator('div[role="dialog"]')
-    try:
-        # waiting up to 5 secs
-        dialog_locator.wait_for(state="visible", timeout=5000)
-    except Exception:
-        print("⛔ Error: pop-up (div[role='dialog']) did not open.")
-        return # exit if not found
-
-    # 2. search the scrollable element
-
-    popup_locator = dialog_locator.locator(scroll_selector)
+    followers_list = scrape_list(page, "followers", scroll_selector)
     
-    # 3. check if found
-    if popup_locator.count() == 0:
-        print(f"⛔ Error: scroll selector'{scroll_selector}' not found.")
-        print("     please, update the CSS selector in the config file (should be something like '_aano').")
-        return # exit if not found
-
-    # 4. now it can scroll
-    last_height = 0
-    while True:
-        # .evaluate()
-        popup_locator.evaluate('el => el.scrollTop = el.scrollHeight')
-        
-        time.sleep(0.4) 
-        
-        new_height = popup_locator.evaluate('el => el.scrollHeight')
-        if new_height == last_height:
-            print("Scrolling terminato.")
-            break
-        last_height = new_height
-
-    print("saving the list ...")
-    followers_list = page.evaluate("""
-        () => {
-            const names = [];
-            document.querySelectorAll('div[role="dialog"] a[href^="/"][role="link"] span[dir="auto"]').forEach(el => {
-                names.push(el.textContent.trim());
-            });
-            return names;
-        }
-    """)
-    page.get_by_role("button", name="Close").click()
-
+    print("Done scraping both lists.")
+    
     save_results(following_list, followers_list)
 
 
@@ -331,16 +343,16 @@ def config_read_object(name):
 
 
 
-def _save_txt_file(percorso_cartella, nome_file, lista_dati):
-    percorso_file = percorso_cartella / f"{nome_file}.txt"
+def _save_txt_file(folder_path, file_name, data):
+    percorso_file = folder_path / f"{file_name}.txt"
     
-    file_content = "\n".join(lista_dati)
+    file_content = "\n".join(data)
     
     try:
         percorso_file.write_text(file_content, encoding="utf-8")
-        print(f"✅ file saved in: {nome_file}.txt ({len(lista_dati)} users)")
+        print(f"✅ file saved in: {file_name}.txt ({len(data)} users)")
     except Exception as e:
-        print(f"❌ error {nome_file}: {e}")
+        print(f"❌ error {file_name}: {e}")
 
 def save_results(following_list, followers_list):
     
@@ -369,6 +381,23 @@ def save_results(following_list, followers_list):
     print(f"👥 followers: {len(followers_set)}")
     print(f"❌ SOBS: {len(sobs)}")
     print(f"💚 fans: {len(fans)}")
+
+    print("do you mind adding the latest diff? [this will lets you see who unfollowed you during this time]\n")
+    prev_folder_path = input("name of the folder where followers.txt is located\n")
+
+    prevfollowers = open(f"{prev_folder_path}/followers.txt","r")
+    actualfollowers = open(f"{folder_path}/followers.txt","r")
+    prevfollowers = prevfollowers.readlines()
+    actualfollowers = actualfollowers.readlines()
+    print(prevfollowers)
+    print(actualfollowers)
+    DF = [ x for x in prevfollowers if x not in actualfollowers ]
+    print(DF)
+
+    diff_path = base_dir / "diffs"
+    diff_path.mkdir(parents=True, exist_ok=True)
+    open(f"{diff_path}/diff_{timestamp}.txt", 'x')
+    _save_txt_file(diff_path, f"diff_{timestamp}", DF)
     
     return
 
@@ -463,6 +492,7 @@ def run_scrape(HEADLESS_MODE, SAFETY_CHECKS, OUTPUT, USERNAME, playwright_option
         
 
         print("surfing in progress...")
+        #input()
 
         # goto instagram page
         instagram_navigation(page, USERNAME)
