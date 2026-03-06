@@ -2,6 +2,7 @@ sudo pacman -S python
 sudo pacman -S python-pip
 sudo pacman -S chromium
 sudo pacman -S python-playwright
+yay -S python-inquirer
 playwright install
 cd ~/Documents/sbriksbraks/instagramSOBS
 python -m venv venv
